@@ -5,8 +5,8 @@ from pygame.locals import *
 # color
 WHITE    = (255, 255, 255)
 RED      = (255,   0,   0)
-GREEN    = (  0, 255,   0)
-NAVYBLUE = ( 60,  60, 100)
+GREEN    = ( 50, 200,  50)
+NAVYBLUE = ( 60,  60, 180)
 PURPLE   = (255,   0, 255)
 BLACK    = (  0,   0,   0)
 color_set = (WHITE, RED, GREEN, NAVYBLUE, PURPLE, BLACK)
@@ -47,21 +47,29 @@ assert len(color_set)*len(figure_set) >= (board_width * board_height) / 2, ...
 
 def main():
     global fpsClock, DISPLAYSURF
+    mousex, mousey = 0, 0
     pygame.init()
 
     fpsClock = pygame.time.Clock()
     DISPLAYSURF = pygame.display.set_mode((width, height))
-    DISPLAYSURF.fill(background_color)
+
     pygame.display.set_caption('Memory Puzzle')
-
-    # mainboard = getRandomizedBoard()
-
+    mainboard = getIconBoard()
     while True:
-        generateBoard()
-        for event in pygame.event.get():
-            if event.type == QUIT:
+        mouseClicked = False
+
+        DISPLAYSURF.fill(background_color)
+        drawBoard(mainboard)
+
+        for event in pygame.event.get(): #handling event
+            if event.type == QUIT or (event.type == KEYUP and event.type == K_ESCAPE):
                 pygame.quit()
                 sys.exit()
+            elif event.type == MOUSEMOTION:
+                mousex, mousey = event.pos
+            elif event.type == MOUSEBUTTONUP:
+                mousex, mousey = event.pos
+                mouseClicked = True
         pygame.display.update()
 
 
@@ -74,8 +82,7 @@ def generateBoard():
             boxy += (boxsize + gapsize)
         boxx += (boxsize + gapsize)
 
-
-def getRandomizedBoard():
+def getIconBoard():
     # create set of diffent figures with colors
     icons = []
     for color in color_set:
@@ -84,29 +91,65 @@ def getRandomizedBoard():
 
     # randomly arrange the set
     random.shuffle(icons)
-    num_of_box = int(board_width * board_height) / 2
+    num_of_box = int(board_width * board_height / 2)
     icons = icons[:num_of_box] * 2
     random.shuffle(icons)
 
     puzzle_board = []
     add = 0
-    while add + board_width < num_of_box * 2:
-        row = icons[add:add+board_width]
+    while add + board_width <= num_of_box * 2:
+        row = icons[add:add + board_width]
         puzzle_board.append(row)
+        add += board_width
     return puzzle_board
 
-
-
-
-def drawBoard(board):
-    boxy = y_margin + gapsize/2
+def drawBoard(icon_board):
     for row in range(board_height):
-        boxy = x_margin + gapsize/2
         for col in range(board_width):
-            pygame.draw.rect(DISPLAYSURF, box_color, (boxx, boxy, boxsize, boxsize))
+            left, top = getLeftTop(col, row)
+            pygame.draw.rect(DISPLAYSURF, box_color, (left, top, boxsize, boxsize))
+            color, icon = icon_board[row][col]
+            size_icon = boxsize - 20
+            top_icon = top + 10
+            left_icon = left + 10
+            half = boxsize / 2
+            # draw icon
+            if icon == RING:
+                pygame.draw.ellipse(DISPLAYSURF, color, (left_icon, top_icon, size_icon, size_icon), 5)
+            elif icon == CROSS:
+                pygame.draw.line(DISPLAYSURF, color, (left + 10, top + 10), (left + boxsize - 10, top + boxsize - 10), 5)
+                pygame.draw.line(DISPLAYSURF, color, (left + 10, top + boxsize - 10), (left + boxsize - 10 , top + 10), 5)
+            elif icon == SQUARE:
+                pygame.draw.rect(DISPLAYSURF, color, (left_icon, top_icon, size_icon, size_icon))
+            elif icon == CIRCLE:
+                pygame.draw.ellipse(DISPLAYSURF, color, (left_icon, top_icon, size_icon, size_icon))
+            elif icon == TRIANGLE:
+                pygame.draw.polygon(DISPLAYSURF, color, ((left + half, top_icon),
+                (left_icon, top + 50), (left + boxsize - 10, top + 50)))
+            elif icon == DIAMOND:
+                pygame.draw.polygon(DISPLAYSURF, color, ((left + half, top_icon), (left_icon, top + half),
+                (left + half, top + boxsize - 10), (left + boxsize - 10, top + half)))
 
-            boxx += (boxsize + gapsize)
-        boxy += (boxsize + gapsize)
+def getCoverBox():
+    
+# get position of left and top of box
+def getLeftTop(boxx, boxy):
+    left = x_margin + gapsize / 2 + boxx * (boxsize + gapsize)
+    top = y_margin + gapsize / 2 + boxy * (boxsize + gapsize)
+    return (left, top)
+
+def getBoxAtCoordinate(x,y):
+    for row in range(board_height):
+        for col in range(board_width):
+            left, top = getLeftTop(col, row)
+            boxRect = pygame.Rect(left, top, boxsize, boxsize)
+            if boxRect.collidepoint(x,y):
+                return (col, row)
+    return (None, None)
+
+
+
+# def user_win():
 
 if __name__ == '__main__':
     main()
